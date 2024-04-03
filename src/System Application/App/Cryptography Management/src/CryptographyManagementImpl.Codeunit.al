@@ -406,6 +406,30 @@ codeunit 1279 "Cryptography Management Impl."
         SignData(DataInStream, SignatureKey.ToXmlString(), HashAlgorithm, SignatureOutStream);
     end;
 
+    procedure SignDataRSAPSS(InputString: Text; XmlString: SecretText; HashAlgorithm: Enum "Hash Algorithm"; SignatureOutStream: OutStream)
+    var
+        ISignatureAlgorithm: Interface "Signature Algorithm v2";
+        TempBlob: Codeunit "Temp Blob";
+        DataOutStream: OutStream;
+        DataInStream: InStream;
+    begin
+        if InputString = '' then
+            exit;
+        TempBlob.CreateOutStream(DataOutStream, TextEncoding::UTF8);
+        TempBlob.CreateInStream(DataInStream, TextEncoding::UTF8);
+        DataOutStream.WriteText(InputString);
+        SignDataRSAPSS(DataInStream, XmlString, HashAlgorithm, SignatureOutStream);
+    end;
+
+    procedure SignDataRSAPSS(DataInStream: InStream; XmlString: SecretText; HashAlgorithm: Enum "Hash Algorithm"; SignatureOutStream: OutStream)
+    var
+        ISignatureAlgorithm: Interface "Signature Algorithm v2";
+    begin
+        ISignatureAlgorithm := Enum::SignatureAlgorithm::"RSASSA-PSS";
+        ISignatureAlgorithm.FromSecretXmlString(XmlString);
+        ISignatureAlgorithm.SignData(DataInStream, HashAlgorithm, SignatureOutStream);
+    end;
+
     procedure VerifyData(InputString: Text; XmlString: SecretText; HashAlgorithm: Enum "Hash Algorithm"; SignatureInStream: InStream): Boolean
     var
         TempBlob: Codeunit "Temp Blob";

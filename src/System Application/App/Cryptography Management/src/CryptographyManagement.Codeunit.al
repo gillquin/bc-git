@@ -331,6 +331,18 @@ codeunit 1266 "Cryptography Management"
     end;
 
     /// <summary>
+    /// Computes the hash value of the specified string and signs it.
+    /// </summary>
+    /// <param name="InputString">Input string for signing.</param>
+    /// <param name="XmlString">The private key to use in the hash algorithm.</param>
+    /// <param name="HashAlgorithm">The available hash algorithms are MD5, SHA1, SHA256, SHA384, and SHA512.</param>
+    /// <param name="SignatureOutStream">The stream to write the signature for the specified string.</param>
+    procedure SignDataRSAPSS(InputString: Text; XmlString: Text; HashAlgorithm: Enum "Hash Algorithm"; SignatureOutStream: OutStream)
+    begin
+        CryptographyManagementImpl.SignDataRSAPSS(InputString, XmlString, HashAlgorithm, SignatureOutStream);
+    end;
+
+    /// <summary>
     /// Verifies that a digital signature is valid.
     /// </summary>
     /// <param name="InputString">Input string.</param>
