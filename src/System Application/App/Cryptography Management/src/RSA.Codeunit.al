@@ -8,7 +8,7 @@ namespace System.Security.Encryption;
 /// <summary>
 /// Performs asymmetric encryption and digital signature using the implementation of the RSA class.
 /// </summary>
-codeunit 5 "RSA Signature Algorithm"
+codeunit 5 "RSA"
 {
     Access = Public;
     InherentEntitlements = X;
@@ -16,7 +16,7 @@ codeunit 5 "RSA Signature Algorithm"
 
     var
         [NonDebuggable]
-        RSASignatureAlgorithmImpl: Codeunit "RSA Signature Algorithm Impl.";
+        RSAImpl: Codeunit "RSA Impl.";
 
     /// <summary>
     /// Initializes a new instance of RSA with the specified key size.
@@ -24,7 +24,7 @@ codeunit 5 "RSA Signature Algorithm"
     /// <param name="KeySize">The size of the key in bits.</param>
     procedure InitializeRSA(KeySize: Integer)
     begin
-        RSASignatureAlgorithmImpl.InitializeRSA(KeySize);
+        RSAImpl.InitializeRSA(KeySize);
     end;
 
 #if not CLEAN24
@@ -38,7 +38,7 @@ codeunit 5 "RSA Signature Algorithm"
     procedure ToXmlString(IncludePrivateParameters: Boolean): Text
     begin
 #pragma warning disable AL0432
-        exit(RSASignatureAlgorithmImpl.ToXmlString(IncludePrivateParameters));
+        exit(RSAImpl.ToXmlString(IncludePrivateParameters));
 #pragma warning restore AL0432
     end;
 
@@ -54,7 +54,7 @@ codeunit 5 "RSA Signature Algorithm"
     [Obsolete('Use SignData with SecretText data type for XmlString.', '24.0')]
     procedure SignData(XmlString: Text; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureOutStream: OutStream)
     begin
-        RSASignatureAlgorithmImpl.SignData(XmlString, DataInStream, HashAlgorithm, RSASignaturePadding, SignatureOutStream);
+        RSAImpl.SignData(XmlString, DataInStream, HashAlgorithm, RSASignaturePadding, SignatureOutStream);
     end;
 
     /// <summary>
@@ -69,7 +69,7 @@ codeunit 5 "RSA Signature Algorithm"
     [Obsolete('Use VerifyData with SecretText data type for XmlString.', '24.0')]
     procedure VerifyData(XmlString: Text; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; SignatureInStream: InStream): Boolean
     begin
-        exit(RSASignatureAlgorithmImpl.VerifyData(XmlString, DataInStream, HashAlgorithm, SignatureInStream));
+        exit(RSAImpl.VerifyData(XmlString, DataInStream, HashAlgorithm, SignatureInStream));
     end;
 
     /// <summary>
@@ -83,7 +83,7 @@ codeunit 5 "RSA Signature Algorithm"
     [Obsolete('Use Encrypt with SecretText data type for XmlString.', '24.0')]
     procedure Encrypt(XmlString: Text; PlainTextInStream: InStream; OaepPadding: Boolean; EncryptedTextOutStream: OutStream)
     begin
-        RSASignatureAlgorithmImpl.Encrypt(XmlString, PlainTextInStream, OaepPadding, EncryptedTextOutStream);
+        RSAImpl.Encrypt(XmlString, PlainTextInStream, OaepPadding, EncryptedTextOutStream);
     end;
 
     /// <summary>
@@ -97,7 +97,7 @@ codeunit 5 "RSA Signature Algorithm"
     [Obsolete('Use Decrypt with SecretText data type for XmlString.', '24.0')]
     procedure Decrypt(XmlString: Text; EncryptedTextInStream: InStream; OaepPadding: Boolean; DecryptedTextOutStream: OutStream)
     begin
-        RSASignatureAlgorithmImpl.Decrypt(XmlString, EncryptedTextInStream, OaepPadding, DecryptedTextOutStream);
+        RSAImpl.Decrypt(XmlString, EncryptedTextInStream, OaepPadding, DecryptedTextOutStream);
     end;
 #endif
 
@@ -109,7 +109,7 @@ codeunit 5 "RSA Signature Algorithm"
     [NonDebuggable]
     procedure ToSecretXmlString(IncludePrivateParameters: Boolean): SecretText
     begin
-        exit(RSASignatureAlgorithmImpl.ToSecretXmlString(IncludePrivateParameters));
+        exit(RSAImpl.ToSecretXmlString(IncludePrivateParameters));
     end;
 
     /// <summary>
@@ -123,7 +123,7 @@ codeunit 5 "RSA Signature Algorithm"
     [NonDebuggable]
     procedure SignData(XmlString: SecretText; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureOutStream: OutStream)
     begin
-        RSASignatureAlgorithmImpl.SignData(XmlString, DataInStream, HashAlgorithm, RSASignaturePadding, SignatureOutStream);
+        RSAImpl.SignData(XmlString, DataInStream, HashAlgorithm, RSASignaturePadding, SignatureOutStream);
     end;
 
     /// <summary>
@@ -138,7 +138,7 @@ codeunit 5 "RSA Signature Algorithm"
     [NonDebuggable]
     procedure VerifyData(XmlString: SecretText; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureInStream: InStream): Boolean
     begin
-        exit(RSASignatureAlgorithmImpl.VerifyData(XmlString, DataInStream, HashAlgorithm, RSASignaturePadding, SignatureInStream));
+        exit(RSAImpl.VerifyData(XmlString, DataInStream, HashAlgorithm, RSASignaturePadding, SignatureInStream));
     end;
 
     /// <summary>
@@ -151,7 +151,7 @@ codeunit 5 "RSA Signature Algorithm"
     [NonDebuggable]
     procedure Encrypt(XmlString: SecretText; PlainTextInStream: InStream; OaepPadding: Boolean; EncryptedTextOutStream: OutStream)
     begin
-        RSASignatureAlgorithmImpl.Encrypt(XmlString, PlainTextInStream, OaepPadding, EncryptedTextOutStream);
+        RSAImpl.Encrypt(XmlString, PlainTextInStream, OaepPadding, EncryptedTextOutStream);
     end;
 
     /// <summary>
@@ -164,6 +164,6 @@ codeunit 5 "RSA Signature Algorithm"
     [NonDebuggable]
     procedure Decrypt(XmlString: SecretText; EncryptedTextInStream: InStream; OaepPadding: Boolean; DecryptedTextOutStream: OutStream)
     begin
-        RSASignatureAlgorithmImpl.Decrypt(XmlString, EncryptedTextInStream, OaepPadding, DecryptedTextOutStream);
+        RSAImpl.Decrypt(XmlString, EncryptedTextInStream, OaepPadding, DecryptedTextOutStream);
     end;
 }

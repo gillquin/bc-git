@@ -2,13 +2,7 @@ namespace System.Security.Encryption;
 
 using System;
 
-#if not CLEAN24
-#pragma warning disable AL0432
-codeunit 4 "RSA Signature Algorithm Impl." implements SignatureAlgorithm, "Signature Algorithm v2"
-#pragma warning restore AL0432
-#else
-codeunit 4 "RSA PSS Impl." implements SignatureAlgorithm
-#endif
+codeunit 4 "RSA Impl." implements SignatureAlgorithm, "Signature Algorithm v2"
 {
     Access = Internal;
     InherentEntitlements = X;
@@ -191,7 +185,7 @@ codeunit 4 "RSA PSS Impl." implements SignatureAlgorithm
     [Obsolete('Replaced by FromSecretXmlString with SecretText data type for XmlString.', '24.0')]
     procedure FromXmlString(XmlString: Text)
     begin
-        RSACryptoServiceProvider();
+        RSA();
         DotNetRSA.FromXmlString(XmlString);
     end;
 #endif
@@ -203,12 +197,12 @@ codeunit 4 "RSA PSS Impl." implements SignatureAlgorithm
     [NonDebuggable]
     procedure FromSecretXmlString(XmlString: SecretText)
     begin
-        RSACryptoServiceProvider();
+        RSA();
         DotNetRSA.FromXmlString(XmlString.Unwrap());
     end;
     #endregion
 
-    local procedure RSACryptoServiceProvider()
+    local procedure RSA()
     begin
         DotNetRSA := DotNetRSA.Create(2048);
     end;
@@ -246,8 +240,6 @@ codeunit 4 "RSA PSS Impl." implements SignatureAlgorithm
                 DotNetHashAlgorithmName := DotNetHashAlgorithmName.SHA384;
             HashAlgorithm::SHA512:
                 DotNetHashAlgorithmName := DotNetHashAlgorithmName.SHA512;
-            else
-                OnElseHashAlgorithmEnumToDotNet(HashAlgorithm, DotNetHashAlgorithmName);
         end;
     end;
 
@@ -259,10 +251,5 @@ codeunit 4 "RSA PSS Impl." implements SignatureAlgorithm
             RSASignaturePadding::Pss:
                 DotNetRSASignaturePadding := DotNetRSASignaturePadding.Pss;
         end;
-    end;
-
-    [IntegrationEvent(false, false)]
-    local procedure OnElseHashAlgorithmEnumToDotNet(HashAlgorithm: Enum "Hash Algorithm"; var DotNetHashAlgorithmName: DotNet HashAlgorithmName)
-    begin
     end;
 }

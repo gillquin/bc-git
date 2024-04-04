@@ -49,12 +49,7 @@ enum 1446 SignatureAlgorithm implements "Signature Algorithm v2"
     /// </summary>
     value(2; "RSASSA-PSS")
     {
-
-#if not CLEAN24
-        Implementation = SignatureAlgorithm = "RSA Signature Algorithm Impl.",
-                            "Signature Algorithm v2" = "RSA Signature Algorithm Impl.";
-#else
-        Implementation = "Signature Algorithm v2" = "RSA PSS Impl.";
-#endif
+        Implementation = SignatureAlgorithm = "RSA Impl.",
+                            "Signature Algorithm v2" = "RSA Impl.";
     }
 }
