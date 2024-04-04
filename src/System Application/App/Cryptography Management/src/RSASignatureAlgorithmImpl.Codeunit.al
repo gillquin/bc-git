@@ -2,7 +2,13 @@ namespace System.Security.Encryption;
 
 using System;
 
-codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorithm v2"
+#if not CLEAN24
+#pragma warning disable AL0432
+codeunit 4 "RSA Signature Algorithm Impl." implements SignatureAlgorithm, "Signature Algorithm v2"
+#pragma warning restore AL0432
+#else
+codeunit 4 "RSA PSS Impl." implements SignatureAlgorithm
+#endif
 {
     Access = Internal;
     InherentEntitlements = X;
@@ -23,14 +29,25 @@ codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorit
 
     #region SignData
     [NonDebuggable]
-    procedure SignData(XmlString: Text; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; SignatureOutStream: OutStream)
+    procedure SignData(XmlString: SecretText; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; SignatureOutStream: OutStream)
     begin
-        FromXmlString(XmlString);
+        SignData(DataInStream, HashAlgorithm, Enum::"RSA Signature Padding"::Pss, SignatureOutStream);
+    end;
+
+    procedure SignData(XmlString: SecretText; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureOutStream: OutStream)
+    begin
+        FromSecretXmlString(XmlString);
         SignData(DataInStream, HashAlgorithm, SignatureOutStream);
     end;
 
     [NonDebuggable]
     procedure SignData(DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; SignatureOutStream: OutStream)
+    begin
+        SignData(DataInStream, HashAlgorithm, Enum::"RSA Signature Padding"::Pss, SignatureOutStream);
+    end;
+
+    [NonDebuggable]
+    procedure SignData(DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureOutStream: OutStream)
     var
         Bytes: DotNet Array;
         Signature: DotNet Array;
@@ -38,40 +55,53 @@ codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorit
         if DataInStream.EOS() then
             exit;
         InStreamToArray(DataInStream, Bytes);
-        SignData(Bytes, HashAlgorithm, Signature);
+        SignData(Bytes, HashAlgorithm, RSASignaturePadding, Signature);
         ArrayToOutStream(Signature, SignatureOutStream);
     end;
 
     [NonDebuggable]
-    local procedure SignData(Bytes: DotNet Array; HashAlgorithm: Enum "Hash Algorithm"; var Signature: DotNet Array)
+    local procedure SignData(Bytes: DotNet Array; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; var Signature: DotNet Array)
     begin
         if Bytes.Length() = 0 then
             exit;
-        TrySignData(Bytes, HashAlgorithm, Signature);
+        TrySignData(Bytes, HashAlgorithm, RSASignaturePadding, Signature);
     end;
 
     [TryFunction]
     [NonDebuggable]
-    local procedure TrySignData(Bytes: DotNet Array; HashAlgorithm: Enum "Hash Algorithm"; var Signature: DotNet Array)
+    local procedure TrySignData(Bytes: DotNet Array; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; var Signature: DotNet Array)
     var
         DotNetHashAlgorithmName: DotNet HashAlgorithmName;
         DotNetRSASignaturePadding: DotNet RSASignaturePadding;
     begin
         HashAlgorithmEnumToDotNet(HashAlgorithm, DotNetHashAlgorithmName);
+        RSASignaturePaddingToDotNet(RSASignaturePadding, DotNetRSASignaturePadding);
         Signature := DotNetRSA.SignData(Bytes, DotNetHashAlgorithmName, DotNetRSASignaturePadding.Pss);
     end;
     #endregion
 
     #region VerifyData
     [NonDebuggable]
-    procedure VerifyData(XmlString: Text; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; SignatureInStream: InStream): Boolean
+    procedure VerifyData(XmlString: SecretText; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; SignatureInStream: InStream): Boolean
     begin
-        FromXmlString(XmlString);
-        exit(VerifyData(DataInStream, HashAlgorithm, SignatureInStream));
+        exit(VerifyData(DataInStream, HashAlgorithm, Enum::"RSA Signature Padding"::Pss, SignatureInStream));
+    end;
+
+    [NonDebuggable]
+    procedure VerifyData(XmlString: SecretText; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureInStream: InStream): Boolean
+    begin
+        FromSecretXmlString(XmlString);
+        exit(VerifyData(DataInStream, HashAlgorithm, RSASignaturePadding, SignatureInStream));
     end;
 
     [NonDebuggable]
     procedure VerifyData(DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; SignatureInStream: InStream): Boolean
+    begin
+        VerifyData(DataInStream, HashAlgorithm, Enum::"RSA Signature Padding"::Pss, SignatureInStream);
+    end;
+
+    [NonDebuggable]
+    procedure VerifyData(DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureInStream: InStream): Boolean
     var
         Bytes: DotNet Array;
         Signature: DotNet Array;
@@ -80,17 +110,17 @@ codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorit
             exit(false);
         InStreamToArray(DataInStream, Bytes);
         InStreamToArray(SignatureInStream, Signature);
-        exit(VerifyData(Bytes, HashAlgorithm, Signature));
+        exit(VerifyData(Bytes, HashAlgorithm, RSASignaturePadding, Signature));
     end;
 
     [NonDebuggable]
-    local procedure VerifyData(Bytes: DotNet Array; HashAlgorithm: Enum "Hash Algorithm"; Signature: DotNet Array): Boolean
+    local procedure VerifyData(Bytes: DotNet Array; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; Signature: DotNet Array): Boolean
     var
         Verified: Boolean;
     begin
         if Bytes.Length() = 0 then
             exit(false);
-        Verified := TryVerifyData(Bytes, HashAlgorithm, Signature);
+        Verified := TryVerifyData(Bytes, HashAlgorithm, RSASignaturePadding, Signature);
         if not Verified and (GetLastErrorText() <> '') then
             Error(GetLastErrorText());
         exit(Verified);
@@ -98,13 +128,13 @@ codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorit
 
     [TryFunction]
     [NonDebuggable]
-    local procedure TryVerifyData(Bytes: DotNet Array; HashAlgorithm: Enum "Hash Algorithm"; Signature: DotNet Array)
+    local procedure TryVerifyData(Bytes: DotNet Array; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; Signature: DotNet Array)
     var
         DotNetHashAlgorithmName: DotNet HashAlgorithmName;
         DotNetRSASignaturePadding: DotNet RSASignaturePadding;
     begin
         HashAlgorithmEnumToDotNet(HashAlgorithm, DotNetHashAlgorithmName);
-
+        RSASignaturePaddingToDotNet(RSASignaturePadding, DotNetRSASignaturePadding);
         if not DotNetRSA.VerifyData(Bytes, Signature, DotNetHashAlgorithmName, DotNetRSASignaturePadding) then
             Error('');
     end;
@@ -112,13 +142,13 @@ codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorit
 
     #region Encryption & Decryption
     [NonDebuggable]
-    procedure Encrypt(XmlString: Text; PlainTextInStream: InStream; OaepPadding: Boolean; EncryptedTextOutStream: OutStream)
+    procedure Encrypt(XmlString: SecretText; PlainTextInStream: InStream; OaepPadding: Boolean; EncryptedTextOutStream: OutStream)
     var
         PlainTextBytes: DotNet Array;
         EncryptedTextBytes: DotNet Array;
         DotNetRSAEncryptionPadding: DotNet RSAEncryptionPadding;
     begin
-        FromXmlString(XmlString);
+        FromSecretXmlString(XmlString);
         InStreamToArray(PlainTextInStream, PlainTextBytes);
 
         if OaepPadding then
@@ -131,13 +161,13 @@ codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorit
     end;
 
     [NonDebuggable]
-    procedure Decrypt(XmlString: Text; EncryptedTextInStream: InStream; OaepPadding: Boolean; DecryptedTextOutStream: OutStream)
+    procedure Decrypt(XmlString: SecretText; EncryptedTextInStream: InStream; OaepPadding: Boolean; DecryptedTextOutStream: OutStream)
     var
         EncryptedTextBytes: DotNet Array;
         DecryptedTextBytes: DotNet Array;
         DotNetRSAEncryptionPadding: DotNet RSAEncryptionPadding;
     begin
-        FromXmlString(XmlString);
+        FromSecretXmlString(XmlString);
         InStreamToArray(EncryptedTextInStream, EncryptedTextBytes);
         if OaepPadding then
             DotNetRSAEncryptionPadding := DotNetRSAEncryptionPadding.OaepSHA256
@@ -149,19 +179,26 @@ codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorit
     #endregion
 
     #region XmlString
+#if not CLEAN24
     [NonDebuggable]
+    [Obsolete('Replaced by ToSecretXmlString with SecretText data type for XmlString.', '24.0')]
     procedure ToXmlString(IncludePrivateParameters: Boolean): Text
     begin
         exit(DotNetRSA.ToXmlString(IncludePrivateParameters));
     end;
 
     [NonDebuggable]
+    [Obsolete('Replaced by FromSecretXmlString with SecretText data type for XmlString.', '24.0')]
     procedure FromXmlString(XmlString: Text)
     begin
         RSACryptoServiceProvider();
         DotNetRSA.FromXmlString(XmlString);
     end;
-    #endregion
+#endif
+    procedure ToSecretXmlString(IncludePrivateParameters: Boolean): SecretText
+    begin
+        exit(DotNetRSA.ToXmlString(IncludePrivateParameters));
+    end;
 
     [NonDebuggable]
     procedure FromSecretXmlString(XmlString: SecretText)
@@ -169,6 +206,7 @@ codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorit
         RSACryptoServiceProvider();
         DotNetRSA.FromXmlString(XmlString.Unwrap());
     end;
+    #endregion
 
     local procedure RSACryptoServiceProvider()
     begin
@@ -210,6 +248,16 @@ codeunit 50000 "RSA PSS Impl." implements SignatureAlgorithm, "Signature Algorit
                 DotNetHashAlgorithmName := DotNetHashAlgorithmName.SHA512;
             else
                 OnElseHashAlgorithmEnumToDotNet(HashAlgorithm, DotNetHashAlgorithmName);
+        end;
+    end;
+
+    local procedure RSASignaturePaddingToDotNet(RSASignaturePadding: Enum "RSA Signature Padding"; var DotNetRSASignaturePadding: DotNet RSASignaturePadding)
+    begin
+        case RSASignaturePadding of
+            RSASignaturePadding::Pkcs1:
+                DotNetRSASignaturePadding := DotNetRSASignaturePadding.Pkcs1;
+            RSASignaturePadding::Pss:
+                DotNetRSASignaturePadding := DotNetRSASignaturePadding.Pss;
         end;
     end;
 
