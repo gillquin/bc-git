@@ -338,7 +338,7 @@ codeunit 1266 "Cryptography Management"
     /// <param name="HashAlgorithm">The available hash algorithms are MD5, SHA1, SHA256, SHA384, and SHA512.</param>
     /// <param name="RSASignaturePadding">The padding mode to use for the RSA signature.</param>
     /// <param name="SignatureOutStream">The stream to write the signature for the specified string.</param>
-    procedure SignData(InputString: Text; XmlString: Text; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureOutStream: OutStream)
+    procedure SignData(InputString: Text; XmlString: SecretText; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureOutStream: OutStream)
     begin
         CryptographyManagementImpl.SignData(InputString, XmlString, HashAlgorithm, RSASignaturePadding, SignatureOutStream);
     end;

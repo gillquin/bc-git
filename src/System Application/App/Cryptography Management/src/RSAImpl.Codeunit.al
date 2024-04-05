@@ -31,7 +31,7 @@ codeunit 4 "RSA Impl." implements SignatureAlgorithm, "Signature Algorithm v2"
     procedure SignData(XmlString: SecretText; DataInStream: InStream; HashAlgorithm: Enum "Hash Algorithm"; RSASignaturePadding: Enum "RSA Signature Padding"; SignatureOutStream: OutStream)
     begin
         FromSecretXmlString(XmlString);
-        SignData(DataInStream, HashAlgorithm, SignatureOutStream);
+        SignData(DataInStream, HashAlgorithm, RSASignaturePadding, SignatureOutStream);
     end;
 
     [NonDebuggable]
@@ -70,7 +70,7 @@ codeunit 4 "RSA Impl." implements SignatureAlgorithm, "Signature Algorithm v2"
     begin
         HashAlgorithmEnumToDotNet(HashAlgorithm, DotNetHashAlgorithmName);
         RSASignaturePaddingToDotNet(RSASignaturePadding, DotNetRSASignaturePadding);
-        Signature := DotNetRSA.SignData(Bytes, DotNetHashAlgorithmName, DotNetRSASignaturePadding.Pss);
+        Signature := DotNetRSA.SignData(Bytes, DotNetHashAlgorithmName, DotNetRSASignaturePadding);
     end;
     #endregion
 
