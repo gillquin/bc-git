@@ -1,110 +1,83 @@
-using module .\AppProjectInfo.class.psm1
-using module .\ALGoProjectInfo.class.psm1
-
 <#
-    .Synopsis
-        Creates a docker-based development environment for AL apps.
-    .Parameter containerName
-        The name of the container to use. The container will be created if it does not exist.
-    .Parameter userName
-        The user name to use for the container.
-    .Parameter password
-        The password to use for the container.
-    .Parameter projectPaths
-        The paths of the AL projects to build. May contain wildcards.
-    .Parameter workspacePath
-        The path of the workspace to build. The workspace file must be in JSON format.
-    .Parameter alGoProject
-        The path of the AL-Go project to build.
-    .Parameter packageCacheFolder
-        The folder to store the built artifacts.
+    .SYNOPSIS
+    Creates a new development environment with a new container, sets up vscode for development against the container, and optionally builds and publishes apps.
+    .DESCRIPTION
+    This script creates a new development environment with a new container, sets up vscode for development against the container, and optionally builds and publishes apps.
+    .PARAMETER ContainerName
+    The name of the container to create. The default value is "BC-$(Get-Date -Format 'yyyyMMdd')".
+    .PARAMETER Authentication
+    The authentication type to use when creating the container. The default value is "UserPassword".
+    .PARAMETER SkipVsCodeSetup
+    If specified, vscode will not be set up for development against the container.
+    .PARAMETER ProjectPaths
+    The paths to the AL projects to build and publish. This parameter is mutually exclusive with the WorkspacePath and AlGoProject parameters.
+    .PARAMETER WorkspacePath
+    The path to the workspace containing the AL projects to build and publish. This parameter is mutually exclusive with the ProjectPaths and AlGoProject parameters.
+    .PARAMETER AlGoProject
+    The name of the AL-Go project to build and publish. This parameter is mutually exclusive with the ProjectPaths and WorkspacePath parameters.
 #>
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '', Justification = 'local build')]
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '', Justification = 'local build')]
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'packageCacheFolder', Justification = 'false-postiive, used in Measure-Command')]
-[CmdletBinding(DefaultParameterSetName = 'ProjectPaths')]
+
+[CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
-    [string] $containerName = "BC-$(Get-Date -Format 'yyyyMMdd')",
-
+    [string] $ContainerName = "BC-$(Get-Date -Format 'yyyyMMdd')",
     [Parameter(Mandatory = $false)]
-    [string] $userName = 'admin',
-
-    [Parameter(Mandatory = $true)]
-    [string] $password,
-
-    [Parameter(Mandatory = $true, ParameterSetName = 'ProjectPaths')]
-    [string[]] $projectPaths,
-
-    [Parameter(Mandatory = $true, ParameterSetName = 'WorkspacePath')]
-    [string] $workspacePath,
-
-    [Parameter(Mandatory = $true, ParameterSetName = 'ALGoProject')]
-    [string] $alGoProject,
-
+    [ValidateSet('Windows', 'UserPassword')]
+    [string] $Authentication = "UserPassword",
     [Parameter(Mandatory = $false)]
-    [string] $packageCacheFolder = ".artifactsCache"
+    [switch] $SkipVsCodeSetup,
+    [Parameter(Mandatory = $false)]
+    [string[]] $ProjectPaths,
+    [Parameter(Mandatory = $false)]
+    [string] $WorkspacePath,
+    [Parameter(Mandatory = $false)]
+    [string] $AlGoProject
 )
 
-$errorActionPreference = "Stop"; $ProgressPreference = "SilentlyContinue"; Set-StrictMode -Version 2.0
-
-# Install BCContainerHelper module if not already installed
-if (-not (Get-Module -ListAvailable -Name "BCContainerHelper")) {
-    Write-Host "BCContainerHelper module not found. Installing..."
-    Install-Module -Name "BCContainerHelper" -Scope CurrentUser -AllowPrerelease -Force
-}
-
-Import-Module "BCContainerHelper" -DisableNameChecking
 Import-Module "$PSScriptRoot\..\EnlistmentHelperFunctions.psm1" -DisableNameChecking
+Import-Module "$PSScriptRoot\ALDev.psm1" -DisableNameChecking
+Import-Module "$PSScriptRoot\NewDevContainer.psm1" -DisableNameChecking
 Import-Module "$PSScriptRoot\NewDevEnv.psm1" -DisableNameChecking
+Import-Module BcContainerHelper
 
-$baseFolder = Get-BaseFolder
+Push-Location (Get-BaseFolderForPath -Path $PSScriptRoot)
 
-# Create BC container
-$credential = New-Object System.Management.Automation.PSCredential ($userName, $(ConvertTo-SecureString $password -AsPlainText -Force))
-$createContainerJob = Create-BCContainer -containerName $containerName -credential $credential -backgroundJob
+$credential = Get-CredentialForContainer -AuthenticationType $Authentication
 
-# Resolve AL project paths
-$projectPaths = Resolve-ProjectPaths -projectPaths $projectPaths -workspacePath $workspacePath -alGoProject $alGoProject -baseFolder $baseFolder
-Write-Host "Resolved project paths: $($projectPaths -join [Environment]::NewLine)"
+# Step 1: Create a container if it does not exist
+if (-not (Test-ContainerExists -ContainerName $ContainerName))
+{
+    # Get artifactUrl from branch
+    $artifactUrl = Get-ConfigValue -Key "artifact" -ConfigType AL-Go
 
-# Build apps
-$appFiles = @()
-$buildingAppsStats = Measure-Command {
-    Write-Host "Building apps..." -ForegroundColor Yellow
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '', Justification = 'false-postiive')]
-    $appFiles = Build-Apps -projectPaths $projectPaths -packageCacheFolder $packageCacheFolder
-}
-
-Write-Host "Building apps took $($buildingAppsStats.TotalSeconds) seconds"
-Write-Host "App files: $($appFiles -join [Environment]::NewLine)" -ForegroundColor Green
-
-# Wait for container creation to finish
-if($createContainerJob) {
-    Write-Host 'Waiting for container creation to finish...' -ForegroundColor Yellow
-    Wait-Job -Job $createContainerJob -Timeout 1
-    Receive-Job -Job $createContainerJob -Wait -AutoRemoveJob
-
-    if($createContainerJob.State -eq 'Failed'){
-        Write-Output "Creating container failed:"
-        throw $($createContainerJob.ChildJobs | ForEach-Object { $_.JobStateInfo.Reason.Message } | Out-String)
-    }
-}
-
-if(Test-ContainerExists -containerName $containerName) {
-    Write-Host "Container $containerName is available" -ForegroundColor Green
+    # Create a new container with a single tenant
+    $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault = $false
+    New-BcContainer -artifactUrl $artifactUrl -accept_eula -accept_insiderEula -containerName $ContainerName -auth $Authentication -Credential $credential -includeAL
 } else {
-    throw "Container $containerName not available. Check if the container was created successfully and is running."
+    Write-Host "Container $ContainerName already exists. Skipping creation." -ForegroundColor Yellow
 }
 
+# Step 2: Move all installed apps to the dev scope
+# By default, the container is created with the global scope. We need to move all installed apps to the dev scope.
+Setup-ContainerForDevelopment -ContainerName $ContainerName -RepoVersion (Get-ConfigValue -Key "repoVersion" -ConfigType AL-Go)
 
-# Publish apps
-Write-Host "Publishing apps..." -ForegroundColor Yellow
-$publishingAppsStats = Measure-Command {
-    foreach($currentAppFile in $appFiles) {
-        Publish-BcContainerApp -containerName $containerName -appFile $currentAppFile -syncMode ForceSync -sync -credential $credential -skipVerification -install -useDevEndpoint -replacePackageId
-    }
+if (-not $SkipVsCodeSetup)
+{
+    # Step 3: Set up vscode for development against the container (i.e. set up launch.json and settings.json)
+    Configure-ALProjectsInPath -ContainerName $ContainerName -Authentication $Authentication
 }
 
-Write-Host "Publishing apps took $($publishingAppsStats.TotalSeconds) seconds"
+# Step 4: (Optional) Build the apps
+if ($ProjectPaths -or $WorkspacePath -or $AlGoProject)
+{
+    # Resolve AL project paths
+    $ProjectPaths = Resolve-ProjectPaths -ProjectPaths $ProjectPaths -WorkspacePath $WorkspacePath -AlGoProject $AlGoProject
 
+    # Build apps
+    Write-Host "Building apps..." -ForegroundColor Yellow
+    $appFiles = Build-Apps -ProjectPaths $ProjectPaths -packageCacheFolder (Get-ArtifactsCacheFolder -ContainerName $ContainerName)
+
+    # Publish apps
+    Write-Host "Publishing apps..." -ForegroundColor Yellow
+    Publish-Apps -ContainerName $ContainerName -AppFiles $appFiles -Credential $credential
+}
