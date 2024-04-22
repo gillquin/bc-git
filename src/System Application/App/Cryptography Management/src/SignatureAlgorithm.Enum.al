@@ -44,4 +44,12 @@ enum 1446 SignatureAlgorithm implements "Signature Algorithm v2"
         Implementation = "Signature Algorithm v2" = "DSACryptoServiceProvider Impl.";
 #endif
     }
+    /// <summary>
+    /// Specifies the RSASSA-PSS algorithm implemented by RSA
+    /// </summary>
+    value(2; "RSASSA-PSS")
+    {
+        Implementation = SignatureAlgorithm = "RSA Impl.",
+                            "Signature Algorithm v2" = "RSA Impl.";
+    }
 }
