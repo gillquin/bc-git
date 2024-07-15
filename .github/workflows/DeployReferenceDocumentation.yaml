@@ -30,19 +30,19 @@ jobs:
 
       - name: Initialize the workflow
         id: init
-        uses: microsoft/AL-Go/Actions/WorkflowInitialize@f6bfb8fa422ba66412aea71cf1e396b0f3032ff4
+        uses: microsoft/AL-Go/Actions/WorkflowInitialize@12f2a5618d20a5dd9043db1ed1a56384c840db57
         with:
           shell: powershell
           eventId: "DO0097"
         
       - name: Read settings
-        uses: microsoft/AL-Go/Actions/ReadSettings@f6bfb8fa422ba66412aea71cf1e396b0f3032ff4
+        uses: microsoft/AL-Go/Actions/ReadSettings@12f2a5618d20a5dd9043db1ed1a56384c840db57
         with:
           shell: powershell
 
       - name: Determine Deployment Environments
         id: DetermineDeploymentEnvironments
-        uses: microsoft/AL-Go/Actions/DetermineDeploymentEnvironments@f6bfb8fa422ba66412aea71cf1e396b0f3032ff4
+        uses: microsoft/AL-Go/Actions/DetermineDeploymentEnvironments@12f2a5618d20a5dd9043db1ed1a56384c840db57
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
@@ -55,7 +55,7 @@ jobs:
         uses: actions/configure-pages@v5
         
       - name: Build Reference Documentation
-        uses: microsoft/AL-Go/Actions/BuildReferenceDocumentation@f6bfb8fa422ba66412aea71cf1e396b0f3032ff4
+        uses: microsoft/AL-Go/Actions/BuildReferenceDocumentation@12f2a5618d20a5dd9043db1ed1a56384c840db57
         with:
           shell: powershell
           artifacts: 'latest'
